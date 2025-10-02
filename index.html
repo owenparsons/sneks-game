@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNEKS - Stochastic Snake Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0a;
+            color: #f5f5f5;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .logo {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .snake-letter {
+            display: grid;
+            grid-template-columns: repeat(4, 8px);
+            grid-template-rows: repeat(5, 8px);
+            gap: 2px;
+        }
+
+        .snake-block {
+            width: 8px;
+            height: 8px;
+        }
+
+        .acronym {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 0.5px;
+        }
+
+        .stats {
+            background: rgba(26, 26, 26, 0.9);
+            padding: 10px 20px;
+            border: 1px solid #333;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 8px;
+        }
+
+        .stats-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stats-divider {
+            width: 100%;
+            border-top: 1px solid #444;
+            margin: 8px 0;
+        }
+
+        .stats div.stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stats .label {
+            color: #666;
+        }
+
+        .stats .value {
+            color: #f5f5f5;
+            font-weight: 500;
+        }
+
+        .warning {
+            color: #ff6b6b !important;
+            margin-left: 10px;
+        }
+
+        .config-panel {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .config-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .config-group label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .config-group input[type="number"] {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #f5f5f5;
+            padding: 6px 10px;
+            font-size: 14px;
+            width: 120px;
+        }
+
+        .config-group input[type="range"] {
+            width: 100px;
+        }
+
+        .config-group .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .config-group input:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            background: #f5f5f5;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #e0e0e0;
+        }
+
+        .info-btn {
+            padding: 10px 15px;
+            background: #333;
+            color: #f5f5f5;
+        }
+
+        .info-btn:hover {
+            background: #444;
+        }
+
+        .chart-container {
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            padding: 20px;
+            height: 180px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        #chartCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            padding: 10px;
+            border: 1px solid #333;
+            font-size: 11px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 2px;
+        }
+
+        .legend-max {
+            border-top: 1px dotted;
+            opacity: 0.5;
+        }
+
+        #gameCanvas {
+            flex: 1;
+            width: 100%;
+            background: #0a0a0a;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #1a1a1a;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #333;
+            width: 80%;
+            max-width: 700px;
+            max-height: 70vh;
+            overflow-y: auto;
+            color: #f5f5f5;
+        }
+
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #444;
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #f5f5f5;
+        }
+
+        .modal h2 {
+            margin-bottom: 15px;
+            color: #f5f5f5;
+        }
+
+        .modal h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #ddd;
+        }
+
+        .modal p, .modal ul {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .modal ul {
+            margin-left: 20px;
+        }
+
+        .modal code {
+            background: #2a2a2a;
+            padding: 2px 4px;
+            color: #BAE1FF;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo" id="sneksLogo"></div>
+            <div class="acronym">Simulated • Non-deterministic • Entities • Kinetically • Swarming</div>
+            <div class="stats">
+                <div class="stats-row">
+                    <div class="stat-item"><span class="label">Frame:</span><span class="value" id="frameCount">0</span></div>
+                    <div class="stat-item"><span class="label">Current Snakes:</span><span class="value" id="snakeCount">0</span></div>
+                    <div class="stat-item"><span class="label">Current Fruits:</span><span class="value" id="fruitCount">0</span></div>
+                    <div class="stat-item"><span class="label">Current Largest Snake:</span><span class="value" id="largestSnake">0</span></div>
+                    <div class="stat-item"><span class="label">Grid:</span><span class="value" id="gridDimensions">0x0</span></div>
+                    <div class="stat-item" id="perfWarning" class="warning" style="display: none;">⚠ Low FPS</div>
+                </div>
+                <div class="stats-divider"></div>
+                <div class="stats-row">
+                    <div class="stat-item"><span class="label">Max Snakes:</span><span class="value" id="maxSnakes">0</span></div>
+                    <div class="stat-item"><span class="label">Max Fruits:</span><span class="value" id="maxFruits">0</span></div>
+                    <div class="stat-item"><span class="label">All-time Largest Snake:</span><span class="value" id="allTimeLargest">0</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="config-panel">
+            <div class="config-group">
+                <label>Frame Rate (ms)</label>
+                <input type="number" id="frameRate" value="500" min="100" max="2000">
+            </div>
+            <div class="config-group">
+                <label>Snake Gen Rate</label>
+                <input type="number" id="snakeGenRate" value="30" min="10" max="100">
+            </div>
+            <div class="config-group">
+                <label>Initial Length</label>
+                <input type="number" id="initialLength" value="5" min="3" max="10">
+            </div>
+            <div class="config-group">
+                <label>Fruit Rate</label>
+                <input type="number" id="fruitRate" value="20" min="5" max="50">
+            </div>
+            <div class="config-group">
+                <label>Grid Size</label>
+                <input type="number" id="gridSize" value="20" min="10" max="40">
+            </div>
+            <div class="config-group">
+                <label>Wiggle <span id="wiggleValue">0.4</span></label>
+                <input type="range" id="wiggle" min="0" max="1" step="0.2" value="0.4">
+                <div class="range-label">
+                    <span>0.0</span><span>1.0</span>
+                </div>
+            </div>
+            <div class="config-group">
+                <label>Random <span id="randomValue">0.4</span></label>
+                <input type="range" id="random" min="0" max="1" step="0.2" value="0.4">
+                <div class="range-label">
+                    <span>0.0</span><span>1.0</span>
+                </div>
+            </div>
+            <div class="config-group">
+                <label>Self Collision</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="selfCollision" checked>
+                    <label for="selfCollision" style="font-size: 12px; text-transform: none;">Allow</label>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn" onclick="restartSimulation()">RESTART</button>
+                <button class="btn info-btn" onclick="showInfo()">INFO</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="chartCanvas"></canvas>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFB3BA;"></div>
+                <span>Current Snakes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #BAFFC9;"></div>
+                <span>Current Fruits</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFDFBA;"></div>
+                <span>Current Largest Snake</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-max" style="background: #FFB3BA;"></div>
+                <span>Max Snakes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-max" style="background: #BAFFC9;"></div>
+                <span>Max Fruits</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-max" style="background: #FFDFBA;"></div>
+                <span>All-time Largest</span>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeInfo()">&times;</span>
+            <h2>SNEKS - Game Rules & Overview</h2>
+            
+            <h3>About</h3>
+            <p>SNEKS is a procedural snake ecosystem simulation where autonomous serpentine entities navigate a grid-based world, consuming fruit and interacting with each other through various collision mechanics.</p>
+            
+            <h3>Snake Behavior</h3>
+            <ul>
+                <li>Each snake moves automatically one square per frame in cardinal directions (up, down, left, right)</li>
+                <li>Movement is probabilistic - each snake has unique chances to go forward, turn left, or turn right</li>
+                <li>The <code>Wiggle</code> parameter controls base movement patterns (0.0 = mostly straight, 1.0 = very erratic)</li>
+                <li>The <code>Random</code> parameter adds variability between individual snakes (0.0 = all identical, 1.0 = maximum variation)</li>
+                <li>Snakes wrap around screen edges (appearing on the opposite side)</li>
+            </ul>
+            
+            <h3>Fruit System</h3>
+            <ul>
+                <li><strong>Yellow Fruit (+1):</strong> Increases snake length by 1 segment</li>
+                <li><strong>Green Fruit (+2):</strong> Increases snake length by 2 segments</li>
+                <li><strong>Blue Fruit (-1):</strong> Decreases snake length by 1 segment</li>
+                <li>Fruit spawns randomly at the rate specified in parameters</li>
+            </ul>
+            
+            <h3>Collision Rules</h3>
+            <ul>
+                <li><strong>Head-on collision:</strong> When two snake heads meet, both snakes are destroyed</li>
+                <li><strong>Head-to-body collision:</strong> The attacked snake disappears, the attacker grows by half the length difference</li>
+                <li><strong>Self-collision:</strong> When enabled, snakes die if they collide with their own body</li>
+            </ul>
+            
+            <h3>Spawning Logic</h3>
+            <ul>
+                <li>New snakes spawn at the rate specified in <code>Snake Gen Rate</code> (frames between spawns)</li>
+                <li>Snakes and fruits are placed in the largest available empty space</li>
+                <li>If no space is available, spawning is delayed until space opens up</li>
+            </ul>
+            
+            <h3>Visual Elements</h3>
+            <ul>
+                <li>Each snake has a unique pastel color randomly selected at spawn</li>
+                <li>Snake heads appear slightly darker than their bodies</li>
+                <li>The chart tracks population dynamics over the last 2000 frames</li>
+                <li>Dotted lines show maximum values achieved during the simulation</li>
+            </ul>
+            
+            <h3>Parameters</h3>
+            <ul>
+                <li><strong>Frame Rate:</strong> Time between frames in milliseconds (lower = faster)</li>
+                <li><strong>Snake Gen Rate:</strong> Frames between new snake spawns</li>
+                <li><strong>Initial Length:</strong> Starting length of new snakes</li>
+                <li><strong>Fruit Rate:</strong> Frames between fruit spawns</li>
+                <li><strong>Grid Size:</strong> Size of each grid cell in pixels</li>
+                <li><strong>Wiggle:</strong> Base turning tendency (0.0-1.0)</li>
+                <li><strong>Random:</strong> Individual snake variation (0.0-1.0)</li>
+                <li><strong>Self Collision:</strong> Whether snakes die from hitting themselves</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Chart data storage
+        const chartHistory = {
+            snakes: [],
+            fruits: [],
+            largestSnake: [],
+            maxSnakes: 0,
+            maxFruits: 0,
+            maxLargestSnake: 0
+        };
+        const MAX_CHART_POINTS = 2000;
+        let isPaused = false;
+
+        // Create snake-shaped letters for the logo
+        function createSnakeLogo() {
+            const logoContainer = document.getElementById('sneksLogo');
+            
+            // Letter colors from the pastel palette
+            const letterColors = ['#FFB3BA', '#FFDFBA', '#BAFFC9', '#BAE1FF', '#E0BBE4'];
+            
+            // Define filled positions for each letter (row, col) where row 1 is bottom, col 1 is left
+            // Converting to 0-based grid indices where (0,0) is top-left for easier rendering
+            const letterPatterns = {
+                S: [
+                    [4,0], [4,1], [4,2], [4,3], // row 1 (bottom)
+                    [3,3], // row 2
+                    [2,0], [2,1], [2,2], [2,3], // row 3
+                    [1,0], // row 4
+                    [0,0], [0,1], [0,2], [0,3] // row 5 (top)
+                ],
+                N: [
+                    [4,0], [4,3], // row 1
+                    [3,0], [3,2], [3,3], // row 2
+                    [2,0], [2,1], [2,2], [2,3], // row 3
+                    [1,0], [1,1], [1,3], // row 4
+                    [0,0], [0,3] // row 5
+                ],
+                E: [
+                    [4,0], [4,1], [4,2], [4,3], // row 1
+                    [3,0], // row 2
+                    [2,0], [2,1], [2,2], [2,3], // row 3
+                    [1,0], // row 4
+                    [0,0], [0,1], [0,2], [0,3] // row 5
+                ],
+                K: [
+                    [4,0], [4,3], // row 1
+                    [3,0], [3,2], // row 2
+                    [2,0], [2,1], // row 3
+                    [1,0], [1,2], // row 4
+                    [0,0], [0,3] // row 5
+                ]
+            };
+            
+            // S, N, E, K, S
+            const letters = ['S', 'N', 'E', 'K', 'S'];
+            
+            letters.forEach((letter, letterIndex) => {
+                const letterDiv = document.createElement('div');
+                letterDiv.className = 'snake-letter';
+                
+                // Create empty 5x4 grid
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 4; col++) {
+                        const block = document.createElement('div');
+                        
+                        // Check if this position should be filled
+                        const pattern = letterPatterns[letter];
+                        const isFilled = pattern.some(([r, c]) => r === row && c === col);
+                        
+                        if (isFilled) {
+                            block.className = 'snake-block';
+                            block.style.background = letterColors[letterIndex];
+                        }
+                        
+                        letterDiv.appendChild(block);
+                    }
+                }
+                
+                logoContainer.appendChild(letterDiv);
+            });
+        }
+
+        createSnakeLogo();
+
+        // Update slider values
+        document.getElementById('wiggle').addEventListener('input', (e) => {
+            document.getElementById('wiggleValue').textContent = e.target.value;
+        });
+        document.getElementById('random').addEventListener('input', (e) => {
+            document.getElementById('randomValue').textContent = e.target.value;
+        });
+
+        // Modal functions
+        function showInfo() {
+            document.getElementById('infoModal').style.display = 'block';
+            isPaused = true;
+        }
+
+        function closeInfo() {
+            document.getElementById('infoModal').style.display = 'none';
+            isPaused = false;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target == modal) {
+                closeInfo();
+            }
+        }
+
+        // Chart drawing
+        function drawChart() {
+            const chartCanvas = document.getElementById('chartCanvas');
+            const chartCtx = chartCanvas.getContext('2d');
+            
+            // Set canvas size
+            chartCanvas.width = chartCanvas.offsetWidth;
+            chartCanvas.height = chartCanvas.offsetHeight;
+            
+            const width = chartCanvas.width - 100; // Leave space for legend
+            const height = chartCanvas.height;
+            const padding = 40;
+            
+            // Clear canvas
+            chartCtx.fillStyle = '#1a1a1a';
+            chartCtx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
+            
+            // Determine data range
+            const startIndex = Math.max(0, chartHistory.snakes.length - MAX_CHART_POINTS);
+            const visibleSnakes = chartHistory.snakes.slice(startIndex);
+            const visibleFruits = chartHistory.fruits.slice(startIndex);
+            const visibleLargest = chartHistory.largestSnake.slice(startIndex);
+            
+            if (visibleSnakes.length < 2) return;
+            
+            // Find max values for scaling
+            const maxY = Math.max(
+                Math.max(...visibleSnakes),
+                Math.max(...visibleFruits),
+                Math.max(...visibleLargest),
+                10
+            );
+            
+            // Draw axes
+            chartCtx.strokeStyle = '#444';
+            chartCtx.lineWidth = 1;
+            chartCtx.beginPath();
+            chartCtx.moveTo(padding, padding);
+            chartCtx.lineTo(padding, height - padding);
+            chartCtx.lineTo(width - padding, height - padding);
+            chartCtx.stroke();
+            
+            // Draw grid lines
+            chartCtx.strokeStyle = '#2a2a2a';
+            chartCtx.lineWidth = 0.5;
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (height - 2 * padding) * i / 5;
+                chartCtx.beginPath();
+                chartCtx.moveTo(padding, y);
+                chartCtx.lineTo(width - padding, y);
+                chartCtx.stroke();
+                
+                // Y-axis labels
+                chartCtx.fillStyle = '#666';
+                chartCtx.font = '10px sans-serif';
+                chartCtx.textAlign = 'right';
+                const value = Math.round(maxY * (5 - i) / 5);
+                chartCtx.fillText(value, padding - 5, y + 3);
+            }
+            
+            // X-axis labels
+            chartCtx.textAlign = 'center';
+            const frameStart = startIndex;
+            const frameEnd = frameStart + visibleSnakes.length;
+            chartCtx.fillText(`Frame ${frameStart}`, padding, height - padding + 15);
+            chartCtx.fillText(`Frame ${frameEnd}`, width - padding, height - padding + 15);
+            
+            // Helper function to draw line
+            function drawLine(data, color, isDotted = false) {
+                if (data.length < 2) return;
+                
+                chartCtx.strokeStyle = color;
+                chartCtx.lineWidth = isDotted ? 1 : 2;
+                if (isDotted) {
+                    chartCtx.setLineDash([5, 5]);
+                    chartCtx.globalAlpha = 0.5;
+                }
+                
+                chartCtx.beginPath();
+                data.forEach((value, index) => {
+                    const x = padding + (width - 2 * padding) * index / (MAX_CHART_POINTS - 1);
+                    const y = height - padding - (height - 2 * padding) * value / maxY;
+                    
+                    if (index === 0) {
+                        chartCtx.moveTo(x, y);
+                    } else {
+                        chartCtx.lineTo(x, y);
+                    }
+                });
+                chartCtx.stroke();
+                
+                chartCtx.setLineDash([]);
+                chartCtx.globalAlpha = 1.0;
+            }
+            
+            // Draw max lines (dotted)
+            const maxSnakeLine = new Array(visibleSnakes.length).fill(chartHistory.maxSnakes);
+            const maxFruitLine = new Array(visibleFruits.length).fill(chartHistory.maxFruits);
+            const maxLargestLine = new Array(visibleLargest.length).fill(chartHistory.maxLargestSnake);
+            drawLine(maxSnakeLine, '#FFB3BA', true);
+            drawLine(maxFruitLine, '#BAFFC9', true);
+            drawLine(maxLargestLine, '#FFDFBA', true);
+            
+            // Draw data lines
+            drawLine(visibleSnakes, '#FFB3BA');
+            drawLine(visibleFruits, '#BAFFC9');
+            drawLine(visibleLargest, '#FFDFBA');
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let config = {
+            frameRate: 500,
+            snakeGenRate: 30,
+            initialLength: 5,
+            fruitRate: 20,
+            cellSize: 20,
+            wiggle: 0.4,
+            random: 0.4,
+            selfCollision: true
+        };
+
+        let gridWidth, gridHeight;
+        let snakes = [];
+        let fruits = [];
+        let frameCounter = 0;
+        let pendingSnake = null;
+        let pendingFruit = null;
+        let animationId;
+        let lastFrameTime = 0;
+        let occupiedCells = new Set();
+
+        const pastelColors = [
+            '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF',
+            '#E0BBE4', '#FFB3D9', '#B3E5FF', '#B3FFB3', '#FFB3B3',
+            '#FFDAB3', '#D4B3FF', '#B3FFE5', '#FFE5B3', '#E5B3FF'
+        ];
+
+        const fruitColors = {
+            plus1: '#FFD700',  // Yellow
+            plus2: '#228B22',  // Green
+            minus1: '#1E90FF'  // Blue
+        };
+
+        class Snake {
+            constructor(x, y, length, color) {
+                this.segments = [];
+                this.color = color;
+                this.direction = Math.floor(Math.random() * 4); // 0: up, 1: right, 2: down, 3: left
+                
+                // Initialize snake segments
+                for (let i = 0; i < length; i++) {
+                    this.segments.push({x: x - i, y: y});
+                }
+                
+                // Calculate movement probabilities based on wiggle and random
+                const wiggle = config.wiggle;
+                const random = config.random;
+                
+                // Base forward probability from wiggle
+                let baseForward = 0.8 - (wiggle * 0.4); // 0.8 to 0.4 as wiggle goes from 0 to 1
+                
+                // Apply randomness
+                const randomRanges = [0, 0.05, 0.1, 0.15, 0.2, 0.25];
+                const randomRange = randomRanges[Math.floor(random * 5)];
+                const randomOffset = (Math.random() * 2 - 1) * randomRange;
+                
+                let forward = baseForward + randomOffset;
+                forward = Math.max(0.1, Math.min(0.9, forward)); // Clamp between 0.1 and 0.9
+                
+                const remaining = 1.0 - forward;
+                const left = remaining / 2;
+                const right = remaining / 2;
+                
+                this.moveProbs = {
+                    forward: forward,
+                    left: left,
+                    right: right
+                };
+            }
+
+            move() {
+                const rand = Math.random();
+                let newDirection = this.direction;
+                
+                if (rand < this.moveProbs.left) {
+                    newDirection = (this.direction + 3) % 4; // Turn left
+                } else if (rand < this.moveProbs.left + this.moveProbs.right) {
+                    newDirection = (this.direction + 1) % 4; // Turn right
+                }
+                
+                this.direction = newDirection;
+                
+                const head = this.segments[0];
+                let newHead = {x: head.x, y: head.y};
+                
+                switch(this.direction) {
+                    case 0: newHead.y--; break; // Up
+                    case 1: newHead.x++; break; // Right
+                    case 2: newHead.y++; break; // Down
+                    case 3: newHead.x--; break; // Left
+                }
+                
+                // Wrap around edges
+                if (newHead.x < 0) newHead.x = gridWidth - 1;
+                if (newHead.x >= gridWidth) newHead.x = 0;
+                if (newHead.y < 0) newHead.y = gridHeight - 1;
+                if (newHead.y >= gridHeight) newHead.y = 0;
+                
+                this.segments.unshift(newHead);
+                this.segments.pop();
+            }
+
+            grow(amount) {
+                const tail = this.segments[this.segments.length - 1];
+                for (let i = 0; i < amount; i++) {
+                    this.segments.push({x: tail.x, y: tail.y});
+                }
+            }
+
+            shrink(amount) {
+                for (let i = 0; i < amount && this.segments.length > 1; i++) {
+                    this.segments.pop();
+                }
+            }
+
+            checkSelfCollision() {
+                if (!config.selfCollision) return false;
+                
+                const head = this.segments[0];
+                for (let i = 1; i < this.segments.length; i++) {
+                    if (head.x === this.segments[i].x && head.y === this.segments[i].y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        class Fruit {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'plus1', 'plus2', 'minus1'
+                this.color = fruitColors[type];
+            }
+        }
+
+        // Optimized: maintain occupied cells set
+        function updateOccupiedCells() {
+            occupiedCells.clear();
+            snakes.forEach(snake => {
+                snake.segments.forEach(seg => {
+                    occupiedCells.add(`${seg.x},${seg.y}`);
+                });
+            });
+            fruits.forEach(fruit => {
+                occupiedCells.add(`${fruit.x},${fruit.y}`);
+            });
+        }
+
+        // Simplified: just find random empty spots
+        function findRandomEmptySpot(requiredLength = 1) {
+            const emptyCells = [];
+            
+            for (let x = 0; x < gridWidth; x++) {
+                for (let y = 0; y < gridHeight; y++) {
+                    let valid = true;
+                    for (let i = 0; i < requiredLength; i++) {
+                        if (occupiedCells.has(`${x - i},${y}`) || x - i < 0) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if (valid) {
+                        emptyCells.push({x, y});
+                    }
+                }
+            }
+            
+            if (emptyCells.length === 0) return null;
+            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        }
+
+        function generateSnake() {
+            const spot = findRandomEmptySpot(config.initialLength);
+            if (!spot) {
+                pendingSnake = true;
+                return;
+            }
+            
+            const color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+            snakes.push(new Snake(spot.x, spot.y, config.initialLength, color));
+            pendingSnake = false;
+        }
+
+        function generateFruit() {
+            const spot = findRandomEmptySpot(1);
+            if (!spot) {
+                pendingFruit = true;
+                return;
+            }
+            
+            const types = ['plus1', 'plus2', 'minus1'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            fruits.push(new Fruit(spot.x, spot.y, type));
+            pendingFruit = false;
+        }
+
+        function checkCollisions() {
+            // Check self-collision first
+            if (!config.selfCollision) {
+                snakes = snakes.filter(snake => !snake.checkSelfCollision());
+            }
+            
+            // Check snake-fruit collisions
+            snakes.forEach(snake => {
+                const head = snake.segments[0];
+                fruits = fruits.filter(fruit => {
+                    if (fruit.x === head.x && fruit.y === head.y) {
+                        switch(fruit.type) {
+                            case 'plus1': snake.grow(1); break;
+                            case 'plus2': snake.grow(2); break;
+                            case 'minus1': snake.shrink(1); break;
+                        }
+                        return false;
+                    }
+                    return true;
+                });
+            });
+            
+            // Check snake-snake collisions
+            const toRemove = new Set();
+            
+            for (let i = 0; i < snakes.length; i++) {
+                if (toRemove.has(i)) continue;
+                
+                for (let j = 0; j < snakes.length; j++) {
+                    if (i === j || toRemove.has(j)) continue;
+                    
+                    const snake1 = snakes[i];
+                    const snake2 = snakes[j];
+                    const head1 = snake1.segments[0];
+                    const head2 = snake2.segments[0];
+                    
+                    // Head-on collision
+                    if (head1.x === head2.x && head1.y === head2.y) {
+                        toRemove.add(i);
+                        toRemove.add(j);
+                    }
+                    
+                    // Head-to-body collision
+                    for (let k = 1; k < snake2.segments.length; k++) {
+                        const seg = snake2.segments[k];
+                        if (head1.x === seg.x && head1.y === seg.y) {
+                            toRemove.add(j);
+                            const growth = Math.floor(Math.abs(snake1.segments.length - snake2.segments.length) / 2);
+                            snake1.grow(growth);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            snakes = snakes.filter((_, index) => !toRemove.has(index));
+        }
+
+        function update() {
+            if (isPaused) return;
+            
+            const startTime = performance.now();
+            
+            frameCounter++;
+            
+            // Move snakes
+            snakes.forEach(snake => snake.move());
+            
+            // Update occupied cells cache
+            updateOccupiedCells();
+            
+            // Check collisions
+            checkCollisions();
+            
+            // Generate new snake (on first frame or at regular intervals)
+            if (frameCounter === 1 || pendingSnake || frameCounter % config.snakeGenRate === 0) {
+                generateSnake();
+            }
+            
+            // Generate fruit
+            if (pendingFruit || frameCounter % config.fruitRate === 0) {
+                generateFruit();
+            }
+            
+            // Find largest snake
+            let largestSnakeSize = 0;
+            snakes.forEach(snake => {
+                if (snake.segments.length > largestSnakeSize) {
+                    largestSnakeSize = snake.segments.length;
+                }
+            });
+            
+            // Update chart data
+            chartHistory.snakes.push(snakes.length);
+            chartHistory.fruits.push(fruits.length);
+            chartHistory.largestSnake.push(largestSnakeSize);
+            chartHistory.maxSnakes = Math.max(chartHistory.maxSnakes, snakes.length);
+            chartHistory.maxFruits = Math.max(chartHistory.maxFruits, fruits.length);
+            chartHistory.maxLargestSnake = Math.max(chartHistory.maxLargestSnake, largestSnakeSize);
+            
+            // Limit history length
+            if (chartHistory.snakes.length > MAX_CHART_POINTS * 2) {
+                chartHistory.snakes = chartHistory.snakes.slice(-MAX_CHART_POINTS);
+                chartHistory.fruits = chartHistory.fruits.slice(-MAX_CHART_POINTS);
+                chartHistory.largestSnake = chartHistory.largestSnake.slice(-MAX_CHART_POINTS);
+            }
+            
+            // Draw chart
+            drawChart();
+            
+            // Update stats
+            document.getElementById('frameCount').textContent = frameCounter;
+            document.getElementById('snakeCount').textContent = snakes.length;
+            document.getElementById('fruitCount').textContent = fruits.length;
+            document.getElementById('largestSnake').textContent = largestSnakeSize;
+            document.getElementById('gridDimensions').textContent = `${gridWidth}x${gridHeight}`;
+            document.getElementById('maxSnakes').textContent = chartHistory.maxSnakes;
+            document.getElementById('maxFruits').textContent = chartHistory.maxFruits;
+            document.getElementById('allTimeLargest').textContent = chartHistory.maxLargestSnake;
+            
+            // Performance monitoring
+            const computeTime = performance.now() - startTime;
+            const perfWarning = document.getElementById('perfWarning');
+            if (computeTime > config.frameRate * 0.8) {
+                perfWarning.style.display = 'block';
+            } else {
+                perfWarning.style.display = 'none';
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid lines (subtle)
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= gridWidth; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * config.cellSize, 0);
+                ctx.lineTo(x * config.cellSize, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= gridHeight; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * config.cellSize);
+                ctx.lineTo(canvas.width, y * config.cellSize);
+                ctx.stroke();
+            }
+            
+            // Draw fruits
+            fruits.forEach(fruit => {
+                ctx.fillStyle = fruit.color;
+                ctx.fillRect(
+                    fruit.x * config.cellSize,
+                    fruit.y * config.cellSize,
+                    config.cellSize,
+                    config.cellSize
+                );
+            });
+            
+            // Draw snakes
+            snakes.forEach(snake => {
+                ctx.fillStyle = snake.color;
+                snake.segments.forEach((seg, index) => {
+                    // Make head slightly darker
+                    if (index === 0) {
+                        ctx.globalAlpha = 1.0;
+                    } else {
+                        ctx.globalAlpha = 0.8;
+                    }
+                    ctx.fillRect(
+                        seg.x * config.cellSize,
+                        seg.y * config.cellSize,
+                        config.cellSize,
+                        config.cellSize
+                    );
+                });
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            animationId = setTimeout(gameLoop, config.frameRate);
+        }
+
+        function resizeCanvas() {
+            const headerHeight = document.querySelector('.header').offsetHeight;
+            const chartHeight = document.querySelector('.chart-container').offsetHeight;
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - headerHeight - chartHeight;
+            
+            gridWidth = Math.floor(canvas.width / config.cellSize);
+            gridHeight = Math.floor(canvas.height / config.cellSize);
+            
+            // Update grid dimensions display
+            document.getElementById('gridDimensions').textContent = `${gridWidth}x${gridHeight}`;
+        }
+
+        function restartSimulation() {
+            clearTimeout(animationId);
+            
+            // Update config from inputs
+            config.frameRate = parseInt(document.getElementById('frameRate').value);
+            config.snakeGenRate = parseInt(document.getElementById('snakeGenRate').value);
+            config.initialLength = parseInt(document.getElementById('initialLength').value);
+            config.fruitRate = parseInt(document.getElementById('fruitRate').value);
+            config.cellSize = parseInt(document.getElementById('gridSize').value);
+            config.wiggle = parseFloat(document.getElementById('wiggle').value);
+            config.random = parseFloat(document.getElementById('random').value);
+            config.selfCollision = !document.getElementById('selfCollision').checked;
+            
+            // Reset state
+            snakes = [];
+            fruits = [];
+            frameCounter = 0;
+            pendingSnake = false;
+            pendingFruit = false;
+            occupiedCells.clear();
+            
+            // Reset chart history
+            chartHistory.snakes = [];
+            chartHistory.fruits = [];
+            chartHistory.largestSnake = [];
+            chartHistory.maxSnakes = 0;
+            chartHistory.maxFruits = 0;
+            chartHistory.maxLargestSnake = 0;
+            
+            // Reset max stats display
+            document.getElementById('maxSnakes').textContent = '0';
+            document.getElementById('maxFruits').textContent = '0';
+            document.getElementById('allTimeLargest').textContent = '0';
+            
+            resizeCanvas();
+            gameLoop();
+        }
+
+        // Initialize
+        window.addEventListener('resize', () => {
+            restartSimulation(); // Restart on resize
+        });
+
+        resizeCanvas();
+        gameLoop();
+    </script>
+</body>
+</html>
